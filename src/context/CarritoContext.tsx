@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Producto, ItemCarrito } from '../types';
+import { carritoAPI } from '../services/api';
+import webSocketService from '../services/websocket';
 
 interface EstadoCarrito {
   items: ItemCarrito[];
@@ -8,10 +10,9 @@ interface EstadoCarrito {
 }
 
 type AccionCarrito =
-  | { type: 'AGREGAR_PRODUCTO'; payload: Producto }
-  | { type: 'ELIMINAR_PRODUCTO'; payload: string }
-  | { type: 'ACTUALIZAR_CANTIDAD'; payload: { id: string; cantidad: number } }
-  | { type: 'LIMPIAR_CARRITO' };
+  | { type: 'ESTABLECER_CARRITO'; payload: any }
+  | { type: 'LIMPIAR_CARRITO' }
+  | { type: 'ESTABLECER_CARGANDO'; payload: boolean };
 
 const estadoInicial: EstadoCarrito = {
   items: [],
@@ -21,56 +22,12 @@ const estadoInicial: EstadoCarrito = {
 
 function carritoReducer(estado: EstadoCarrito, accion: AccionCarrito): EstadoCarrito {
   switch (accion.type) {
-    case 'AGREGAR_PRODUCTO': {
-      const productoExistente = estado.items.find(item => item.producto.id === accion.payload.id);
-      
-      let nuevosItems: ItemCarrito[];
-      if (productoExistente) {
-        nuevosItems = estado.items.map(item =>
-          item.producto.id === accion.payload.id
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        );
-      } else {
-        nuevosItems = [...estado.items, { producto: accion.payload, cantidad: 1 }];
-      }
-      
-      const nuevoTotal = nuevosItems.reduce((total, item) => total + (item.producto.precio * item.cantidad), 0);
-      const nuevaCantidadTotal = nuevosItems.reduce((total, item) => total + item.cantidad, 0);
-      
+    case 'ESTABLECER_CARRITO': {
+      const carrito = accion.payload;
       return {
-        items: nuevosItems,
-        total: nuevoTotal,
-        cantidadTotal: nuevaCantidadTotal
-      };
-    }
-    
-    case 'ELIMINAR_PRODUCTO': {
-      const nuevosItems = estado.items.filter(item => item.producto.id !== accion.payload);
-      const nuevoTotal = nuevosItems.reduce((total, item) => total + (item.producto.precio * item.cantidad), 0);
-      const nuevaCantidadTotal = nuevosItems.reduce((total, item) => total + item.cantidad, 0);
-      
-      return {
-        items: nuevosItems,
-        total: nuevoTotal,
-        cantidadTotal: nuevaCantidadTotal
-      };
-    }
-    
-    case 'ACTUALIZAR_CANTIDAD': {
-      const nuevosItems = estado.items.map(item =>
-        item.producto.id === accion.payload.id
-          ? { ...item, cantidad: accion.payload.cantidad }
-          : item
-      ).filter(item => item.cantidad > 0);
-      
-      const nuevoTotal = nuevosItems.reduce((total, item) => total + (item.producto.precio * item.cantidad), 0);
-      const nuevaCantidadTotal = nuevosItems.reduce((total, item) => total + item.cantidad, 0);
-      
-      return {
-        items: nuevosItems,
-        total: nuevoTotal,
-        cantidadTotal: nuevaCantidadTotal
+        items: carrito.items || [],
+        total: carrito.resumen?.total || 0,
+        cantidadTotal: carrito.resumen?.cantidad_items || 0
       };
     }
     
@@ -83,40 +40,134 @@ function carritoReducer(estado: EstadoCarrito, accion: AccionCarrito): EstadoCar
 }
 
 interface ContextoCarrito extends EstadoCarrito {
-  agregarProducto: (producto: Producto) => void;
-  eliminarProducto: (id: string) => void;
-  actualizarCantidad: (id: string, cantidad: number) => void;
-  limpiarCarrito: () => void;
+  cargando: boolean;
+  agregarProducto: (producto: Producto) => Promise<void>;
+  eliminarProducto: (itemId: number) => Promise<void>;
+  actualizarCantidad: (itemId: number, cantidad: number) => Promise<void>;
+  limpiarCarrito: () => Promise<void>;
+  cargarCarrito: () => Promise<void>;
 }
 
 const CarritoContext = createContext<ContextoCarrito | undefined>(undefined);
 
 export function ProveedorCarrito({ children }: { children: ReactNode }) {
   const [estado, dispatch] = useReducer(carritoReducer, estadoInicial);
+  const [cargando, setCargando] = React.useState(false);
   
-  const agregarProducto = (producto: Producto) => {
-    dispatch({ type: 'AGREGAR_PRODUCTO', payload: producto });
+  // Cargar carrito al inicializar
+  React.useEffect(() => {
+    cargarCarrito();
+    
+    // Configurar WebSocket para actualizaciones en tiempo real
+    webSocketService.escucharActualizacionesCarrito(() => {
+      cargarCarrito();
+    });
+  }, []);
+
+  const cargarCarrito = async () => {
+    try {
+      setCargando(true);
+      const respuesta = await carritoAPI.obtenerCarrito();
+      if (respuesta.exito) {
+        dispatch({ type: 'ESTABLECER_CARRITO', payload: respuesta.datos });
+      }
+    } catch (error) {
+      console.error('Error al cargar carrito:', error);
+    } finally {
+      setCargando(false);
+    }
   };
   
-  const eliminarProducto = (id: string) => {
-    dispatch({ type: 'ELIMINAR_PRODUCTO', payload: id });
+  const agregarProducto = async (producto: Producto) => {
+    try {
+      setCargando(true);
+      const respuesta = await carritoAPI.agregarProducto(parseInt(producto.id), 1);
+      if (respuesta.exito) {
+        await cargarCarrito();
+        
+        // Notificar actualización por WebSocket
+        webSocketService.notificarActualizacionCarrito({
+          accion: 'agregar',
+          producto_id: producto.id
+        });
+      }
+    } catch (error) {
+      console.error('Error al agregar producto:', error);
+      throw error;
+    } finally {
+      setCargando(false);
+    }
   };
   
-  const actualizarCantidad = (id: string, cantidad: number) => {
-    dispatch({ type: 'ACTUALIZAR_CANTIDAD', payload: { id, cantidad } });
+  const eliminarProducto = async (itemId: number) => {
+    try {
+      setCargando(true);
+      const respuesta = await carritoAPI.eliminarProducto(itemId);
+      if (respuesta.exito) {
+        await cargarCarrito();
+        
+        webSocketService.notificarActualizacionCarrito({
+          accion: 'eliminar',
+          item_id: itemId
+        });
+      }
+    } catch (error) {
+      console.error('Error al eliminar producto:', error);
+      throw error;
+    } finally {
+      setCargando(false);
+    }
   };
   
-  const limpiarCarrito = () => {
-    dispatch({ type: 'LIMPIAR_CARRITO' });
+  const actualizarCantidad = async (itemId: number, cantidad: number) => {
+    try {
+      setCargando(true);
+      const respuesta = await carritoAPI.actualizarCantidad(itemId, cantidad);
+      if (respuesta.exito) {
+        await cargarCarrito();
+        
+        webSocketService.notificarActualizacionCarrito({
+          accion: 'actualizar',
+          item_id: itemId,
+          cantidad
+        });
+      }
+    } catch (error) {
+      console.error('Error al actualizar cantidad:', error);
+      throw error;
+    } finally {
+      setCargando(false);
+    }
+  };
+  
+  const limpiarCarrito = async () => {
+    try {
+      setCargando(true);
+      const respuesta = await carritoAPI.limpiarCarrito();
+      if (respuesta.exito) {
+        dispatch({ type: 'LIMPIAR_CARRITO' });
+        
+        webSocketService.notificarActualizacionCarrito({
+          accion: 'limpiar'
+        });
+      }
+    } catch (error) {
+      console.error('Error al limpiar carrito:', error);
+      throw error;
+    } finally {
+      setCargando(false);
+    }
   };
   
   return (
     <CarritoContext.Provider value={{
       ...estado,
+      cargando,
       agregarProducto,
       eliminarProducto,
       actualizarCantidad,
-      limpiarCarrito
+      limpiarCarrito,
+      cargarCarrito
     }}>
       {children}
     </CarritoContext.Provider>

@@ -1,74 +1,136 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Usuario } from '../types';
+import { authAPI } from '../services/api';
+import webSocketService from '../services/websocket';
 
 interface ContextoAutenticacion {
   usuario: Usuario | null;
   estaAutenticado: boolean;
+  cargando: boolean;
   iniciarSesion: (email: string, password: string) => Promise<boolean>;
   registrarse: (datos: any) => Promise<boolean>;
   cerrarSesion: () => void;
+  actualizarPerfil: (datos: any) => Promise<boolean>;
 }
 
 const AutenticacionContext = createContext<ContextoAutenticacion | undefined>(undefined);
 
-// Usuario de ejemplo para demostración
-const usuarioEjemplo: Usuario = {
-  id: '1',
-  nombre: 'Juan',
-  apellido: 'Pérez',
-  email: 'juan@ejemplo.com',
-  telefono: '+1 (555) 123-4567',
-  direcciones: [
-    {
-      id: '1',
-      nombre: 'Casa',
-      direccion: 'Calle Principal 123',
-      ciudad: 'Madrid',
-      codigoPostal: '28001',
-      pais: 'España',
-      telefono: '+34 123 456 789',
-      esPredeterminada: true
-    }
-  ]
-};
 
 export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [cargando, setCargando] = useState(false);
+
+  // Verificar si hay token al cargar
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      verificarToken();
+    }
+  }, []);
+
+  const verificarToken = async () => {
+    try {
+      setCargando(true);
+      const respuesta = await authAPI.obtenerPerfil();
+      if (respuesta.exito) {
+        setUsuario(respuesta.datos);
+        
+        // Conectar WebSocket y autenticar
+        webSocketService.conectar();
+        webSocketService.autenticar(localStorage.getItem('token')!);
+      }
+    } catch (error) {
+      console.error('Error al verificar token:', error);
+      localStorage.removeItem('token');
+    } finally {
+      setCargando(false);
+    }
+  };
   
   const iniciarSesion = async (email: string, password: string): Promise<boolean> => {
-    // Simulación de autenticación
-    if (email === 'juan@ejemplo.com' && password === '123456') {
-      setUsuario(usuarioEjemplo);
-      return true;
+    try {
+      setCargando(true);
+      const respuesta = await authAPI.iniciarSesion(email, password);
+      
+      if (respuesta.exito) {
+        setUsuario(respuesta.datos.usuario);
+        
+        // Conectar WebSocket y autenticar
+        webSocketService.conectar();
+        webSocketService.autenticar(respuesta.datos.token);
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+      return false;
+    } finally {
+      setCargando(false);
     }
-    return false;
   };
   
   const registrarse = async (datos: any): Promise<boolean> => {
-    // Simulación de registro
-    const nuevoUsuario: Usuario = {
-      id: Date.now().toString(),
-      nombre: datos.nombre,
-      apellido: datos.apellido,
-      email: datos.email,
-      telefono: datos.telefono,
-      direcciones: []
-    };
-    setUsuario(nuevoUsuario);
-    return true;
+    try {
+      setCargando(true);
+      const respuesta = await authAPI.registrarse(datos);
+      
+      if (respuesta.exito) {
+        setUsuario(respuesta.datos.usuario);
+        
+        // Conectar WebSocket y autenticar
+        webSocketService.conectar();
+        webSocketService.autenticar(respuesta.datos.token);
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error al registrarse:', error);
+      return false;
+    } finally {
+      setCargando(false);
+    }
   };
   
-  const cerrarSesion = () => {
-    setUsuario(null);
+  const cerrarSesion = async () => {
+    try {
+      await authAPI.cerrarSesion();
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    } finally {
+      setUsuario(null);
+      webSocketService.desconectar();
+    }
+  };
+
+  const actualizarPerfil = async (datos: any): Promise<boolean> => {
+    try {
+      setCargando(true);
+      const respuesta = await authAPI.actualizarPerfil(datos);
+      
+      if (respuesta.exito) {
+        setUsuario(respuesta.datos);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      return false;
+    } finally {
+      setCargando(false);
+    }
   };
   
   return (
     <AutenticacionContext.Provider value={{
       usuario,
       estaAutenticado: !!usuario,
+      cargando,
       iniciarSesion,
       registrarse,
-      cerrarSesion
+      cerrarSesion,
+      actualizarPerfil
     }}>
       {children}
     </AutenticacionContext.Provider>

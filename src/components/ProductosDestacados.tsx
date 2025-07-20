@@ -1,13 +1,28 @@
 import React from 'react';
 import TarjetaProducto from './TarjetaProducto';
-import { productos } from '../data/productos';
+import { obtenerProductosDestacados } from '../data/productos';
 import { useNavegacion } from '../hooks/useNavegacion';
 
 const ProductosDestacados: React.FC = () => {
   const { navegarA } = useNavegacion();
+  const [productos, setProductos] = React.useState([]);
+  const [cargando, setCargando] = React.useState(true);
   
-  // Mostrar solo los primeros 4 productos
-  const productosDestacados = productos.slice(0, 4);
+  React.useEffect(() => {
+    cargarProductosDestacados();
+  }, []);
+
+  const cargarProductosDestacados = async () => {
+    try {
+      setCargando(true);
+      const productosDestacados = await obtenerProductosDestacados(4);
+      setProductos(productosDestacados);
+    } catch (error) {
+      console.error('Error al cargar productos destacados:', error);
+    } finally {
+      setCargando(false);
+    }
+  };
 
   return (
     <section className="featured-products py-5">
@@ -20,11 +35,34 @@ const ProductosDestacados: React.FC = () => {
         </div>
         
         <div className="row g-4">
-          {productosDestacados.map(producto => (
-            <div key={producto.id} className="col-6 col-md-3">
-              <TarjetaProducto producto={producto} />
+          {cargando ? (
+            // Skeleton loading
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="col-6 col-md-3">
+                <div className="card">
+                  <div className="placeholder-glow">
+                    <div className="placeholder bg-secondary" style={{ height: '200px' }}></div>
+                  </div>
+                  <div className="card-body">
+                    <div className="placeholder-glow">
+                      <span className="placeholder col-8"></span>
+                      <span className="placeholder col-6"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : productos.length > 0 ? (
+            productos.map(producto => (
+              <div key={producto.id} className="col-6 col-md-3">
+                <TarjetaProducto producto={producto} />
+              </div>
+            ))
+          ) : (
+            <div className="col-12 text-center">
+              <p className="text-muted">No hay productos destacados disponibles</p>
             </div>
-          ))}
+          )}
         </div>
         
         <div className="row mt-5">

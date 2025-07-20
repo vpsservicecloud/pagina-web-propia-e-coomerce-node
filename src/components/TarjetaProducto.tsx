@@ -15,16 +15,28 @@ const TarjetaProducto: React.FC<PropsTarjetaProducto> = ({ producto }) => {
   const manejarAgregarCarrito = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    agregarProducto(producto);
     
-    // Mostrar notificación
+    agregarProducto(producto)
+      .then(() => {
+        // Mostrar notificación de éxito
+        mostrarNotificacion('Producto agregado al carrito', 'success');
+      })
+      .catch((error) => {
+        // Mostrar notificación de error
+        mostrarNotificacion('Error al agregar producto', 'error');
+        console.error('Error al agregar producto:', error);
+      });
+  };
+
+  const mostrarNotificacion = (mensaje: string, tipo: 'success' | 'error') => {
     const toast = document.createElement('div');
-    toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+    const bgClass = tipo === 'success' ? 'bg-success' : 'bg-danger';
+    toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed`;
     toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
     toast.innerHTML = `
       <div class="d-flex">
         <div class="toast-body">
-          Producto agregado al carrito
+          ${mensaje}
         </div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
@@ -41,9 +53,8 @@ const TarjetaProducto: React.FC<PropsTarjetaProducto> = ({ producto }) => {
     });
   };
 
-  const precioConDescuento = producto.descuento 
-    ? producto.precio * (1 - producto.descuento / 100)
-    : producto.precio;
+  const precioConDescuento = producto.precio_oferta || producto.precio;
+  const tieneDescuento = producto.precio_oferta && producto.precio_oferta < producto.precio;
 
   return (
     <div className="product-card card h-100">
@@ -58,11 +69,13 @@ const TarjetaProducto: React.FC<PropsTarjetaProducto> = ({ producto }) => {
         
         {/* Insignias del producto */}
         <div className="position-absolute top-0 start-0 p-2">
-          {producto.esNuevo && (
+          {producto.nuevo && (
             <span className="badge bg-info me-2">Nuevo</span>
           )}
-          {producto.descuento && (
-            <span className="badge bg-danger">-{producto.descuento}%</span>
+          {tieneDescuento && (
+            <span className="badge bg-danger">
+              -{Math.round(((producto.precio - producto.precio_oferta) / producto.precio) * 100)}%
+            </span>
           )}
         </div>
         
@@ -97,7 +110,7 @@ const TarjetaProducto: React.FC<PropsTarjetaProducto> = ({ producto }) => {
         
         <div className="d-flex justify-content-between align-items-center mt-auto">
           <div className="product-price">
-            {producto.descuento ? (
+            {tieneDescuento ? (
               <>
                 <span className="text-danger fw-bold">${precioConDescuento.toFixed(2)}</span>
                 <small className="text-muted text-decoration-line-through ms-2">
@@ -105,7 +118,7 @@ const TarjetaProducto: React.FC<PropsTarjetaProducto> = ({ producto }) => {
                 </small>
               </>
             ) : (
-              <span className="fw-bold">${producto.precio.toFixed(2)}</span>
+              <span className="fw-bold">${precioConDescuento.toFixed(2)}</span>
             )}
           </div>
           

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProveedorCarrito } from './context/CarritoContext';
 import { ProveedorAutenticacion } from './context/AutenticacionContext';
+import webSocketService from './services/websocket';
 import Encabezado from './components/Encabezado';
 import PiePagina from './components/PiePagina';
 import VolverArriba from './components/VolverArriba';
@@ -20,6 +21,9 @@ function App() {
   const [rutaActual, setRutaActual] = useState(window.location.pathname);
 
   useEffect(() => {
+    // Inicializar WebSocket
+    webSocketService.conectar();
+    
     const manejarNavegacion = (event: any) => {
       setRutaActual(event.detail.ruta);
     };
