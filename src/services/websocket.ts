@@ -11,6 +11,7 @@ class WebSocketService {
     }
 
     const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:3001';
+    const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'https://zp1v56uxy8rdx5ypatb0ockcb9tr6a-oci3-1xzf8lu4--3001--96435430.local-credentialless.webcontainer-api.io';
     
     this.socket = io(WEBSOCKET_URL, {
       transports: ['websocket', 'polling'],

@@ -1,5 +1,5 @@
 // Configuración de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://zp1v56uxy8rdx5ypatb0ockcb9tr6a-oci3-1xzf8lu4--3001--96435430.local-credentialless.webcontainer-api.io/api';
 
 // Función para obtener el token de autenticación
 const obtenerToken = (): string | null => {
