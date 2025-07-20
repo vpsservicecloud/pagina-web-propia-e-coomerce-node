@@ -1,36 +1,60 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Filter, Grid, List } from 'lucide-react';
 import TarjetaProducto from '../components/TarjetaProducto';
-import { productos } from '../data/productos';
+import { productosAPI } from '../services/api';
+import { Producto } from '../types';
 
 const PaginaTienda: React.FC = () => {
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
   const [ordenamiento, setOrdenamiento] = useState('nombre');
   const [vistaGrid, setVistaGrid] = useState(true);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [cargando, setCargando] = useState(true);
 
-  const productosFiltrados = useMemo(() => {
-    let resultado = productos;
-
-    // Filtrar por categoría
-    if (filtroCategoria !== 'todas') {
-      resultado = resultado.filter(producto => producto.categoria === filtroCategoria);
-    }
-
-    // Ordenar
-    resultado.sort((a, b) => {
+  // Función para obtener productos de la API
+  const cargarProductos = async () => {
+    setCargando(true);
+    try {
+      // Preparar parámetros para la API
+      const filtros: any = {};
+      
+      if (filtroCategoria !== 'todas') {
+        filtros.categoria = filtroCategoria;
+      }
+      
+      // Convertir ordenamiento a formato de API
       switch (ordenamiento) {
         case 'precio-asc':
-          return a.precio - b.precio;
+          filtros.ordenar = 'precio';
+          filtros.direccion = 'asc';
+          break;
         case 'precio-desc':
-          return b.precio - a.precio;
+          filtros.ordenar = 'precio';
+          filtros.direccion = 'desc';
+          break;
         case 'nombre':
-          return a.nombre.localeCompare(b.nombre);
-        default:
-          return 0;
+          filtros.ordenar = 'nombre';
+          filtros.direccion = 'asc';
+          break;
       }
-    });
 
-    return resultado;
+      const respuesta = await productosAPI.obtenerProductos(filtros);
+      if (respuesta.exito) {
+        setProductos(respuesta.datos.productos || []);
+      } else {
+        setProductos([]);
+      }
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+      setProductos([]);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Cargar productos cuando cambien los filtros
+  useEffect(() => {
+    cargarProductos();
   }, [filtroCategoria, ordenamiento]);
 
   const categorias = [
@@ -62,6 +86,7 @@ const PaginaTienda: React.FC = () => {
                 className="form-select"
                 value={filtroCategoria}
                 onChange={(e) => setFiltroCategoria(e.target.value)}
+                disabled={cargando}
               >
                 {categorias.map(categoria => (
                   <option key={categoria.valor} value={categoria.valor}>
@@ -74,6 +99,7 @@ const PaginaTienda: React.FC = () => {
                 className="form-select"
                 value={ordenamiento}
                 onChange={(e) => setOrdenamiento(e.target.value)}
+                disabled={cargando}
               >
                 <option value="nombre">Ordenar por nombre</option>
                 <option value="precio-asc">Precio: menor a mayor</option>
@@ -85,19 +111,21 @@ const PaginaTienda: React.FC = () => {
           <div className="col-md-6">
             <div className="d-flex justify-content-md-end align-items-center gap-2">
               <span className="text-muted small">
-                {productosFiltrados.length} productos encontrados
+                {cargando ? 'Cargando...' : `${productos.length} productos encontrados`}
               </span>
               
               <div className="btn-group" role="group">
                 <button 
                   className={`btn btn-outline-secondary ${vistaGrid ? 'active' : ''}`}
                   onClick={() => setVistaGrid(true)}
+                  disabled={cargando}
                 >
                   <Grid size={16} />
                 </button>
                 <button 
                   className={`btn btn-outline-secondary ${!vistaGrid ? 'active' : ''}`}
                   onClick={() => setVistaGrid(false)}
+                  disabled={cargando}
                 >
                   <List size={16} />
                 </button>
@@ -108,8 +136,15 @@ const PaginaTienda: React.FC = () => {
 
         {/* Productos */}
         <div className="row">
-          {productosFiltrados.length > 0 ? (
-            productosFiltrados.map(producto => (
+          {cargando ? (
+            <div className="col-12 text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Cargando...</span>
+              </div>
+              <p className="mt-3 text-muted">Cargando productos...</p>
+            </div>
+          ) : productos.length > 0 ? (
+            productos.map(producto => (
               <div 
                 key={producto.id} 
                 className={vistaGrid ? 'col-6 col-md-4 col-lg-3 mb-4' : 'col-12 mb-3'}
