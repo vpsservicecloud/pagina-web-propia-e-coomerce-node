@@ -1,7 +1,7 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database');
-const { cache } = require('../config/redis');
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { pool } from '../config/database.js';
+import { cache } from '../config/redis.js';
 
 // Generar token JWT
 const generarToken = (usuario) => {
@@ -312,7 +312,7 @@ const cambiarPassword = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   registrarUsuario,
   iniciarSesion,
   cerrarSesion,

@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database');
+import jwt from 'jsonwebtoken';
+import { pool } from '../config/database.js';
 
 // Middleware para verificar autenticación
 const verificarAuth = async (req, res, next) => {
@@ -75,7 +75,7 @@ const usuarioOpcional = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export {
   verificarAuth,
   verificarAdmin,
   usuarioOpcional

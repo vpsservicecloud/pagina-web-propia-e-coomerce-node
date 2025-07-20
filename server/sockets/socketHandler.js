@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database');
+import jwt from 'jsonwebtoken';
+import { pool } from '../config/database.js';
 
 // Manejar conexiones de WebSocket
 const manejarConexiones = (io) => {
@@ -215,7 +215,7 @@ const notificaciones = {
   }
 };
 
-module.exports = {
+export {
   manejarConexiones,
   notificaciones
 };

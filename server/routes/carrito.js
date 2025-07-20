@@ -1,13 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   obtenerCarrito,
   agregarProducto,
   actualizarCantidad,
   eliminarProducto,
   limpiarCarrito
-} = require('../controllers/carritoController');
-const { usuarioOpcional } = require('../middleware/auth');
+} from '../controllers/carritoController.js';
+import { usuarioOpcional } from '../middleware/auth.js';
+
+const router = express.Router();
 
 // Todas las rutas del carrito permiten usuarios opcionales (invitados)
 router.get('/', usuarioOpcional, obtenerCarrito);
@@ -16,4 +17,4 @@ router.put('/actualizar', usuarioOpcional, actualizarCantidad);
 router.delete('/item/:item_id', usuarioOpcional, eliminarProducto);
 router.delete('/limpiar', usuarioOpcional, limpiarCarrito);
 
-module.exports = router;
+export default router;

@@ -1,5 +1,5 @@
-const redis = require('redis');
-require('dotenv').config();
+import redis from 'redis';
+import 'dotenv/config';
 
 // Configuración de Redis
 const redisConfig = {
@@ -168,7 +168,7 @@ const cacheEcommerce = {
   }
 };
 
-module.exports = {
+export {
   cliente,
   conectarRedis,
   cache,

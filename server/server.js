@@ -1,28 +1,28 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const cors = require('cors');
-const helmet = require('helmet');
-const compression = require('compression');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
+import 'dotenv/config';
 
 // Importar configuraciones
-const { inicializarBaseDatos, insertarDatosEjemplo } = require('./config/database');
-const { conectarRedis } = require('./config/redis');
-const { manejarConexiones } = require('./sockets/socketHandler');
+import { inicializarBaseDatos, insertarDatosEjemplo } from './config/database.js';
+import { conectarRedis } from './config/redis.js';
+import { manejarConexiones } from './sockets/socketHandler.js';
 
 // Importar rutas
-const authRoutes = require('./routes/auth');
-const productosRoutes = require('./routes/productos');
-const carritoRoutes = require('./routes/carrito');
+import authRoutes from './routes/auth.js';
+import productosRoutes from './routes/productos.js';
+import carritoRoutes from './routes/carrito.js';
 
 const app = express();
 const server = http.createServer(app);
 
 // Configurar Socket.IO con CORS
-const io = socketIo(server, {
+const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     methods: ["GET", "POST"],
@@ -167,4 +167,4 @@ process.on('SIGINT', () => {
 // Inicializar servidor
 inicializarServidor();
 
-module.exports = { app, server, io };
+export { app, server, io };

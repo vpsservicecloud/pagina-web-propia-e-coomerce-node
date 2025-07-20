@@ -1,5 +1,5 @@
-const { pool } = require('../config/database');
-const { cacheEcommerce } = require('../config/redis');
+import { pool } from '../config/database.js';
+import { cacheEcommerce } from '../config/redis.js';
 
 // Obtener todos los productos con filtros
 const obtenerProductos = async (req, res) => {
@@ -350,7 +350,7 @@ const buscarProductos = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   obtenerProductos,
   obtenerProductoPorId,
   obtenerProductosDestacados,

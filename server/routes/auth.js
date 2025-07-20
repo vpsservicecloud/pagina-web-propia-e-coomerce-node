@@ -1,14 +1,15 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   registrarUsuario,
   iniciarSesion,
   cerrarSesion,
   obtenerPerfil,
   actualizarPerfil,
   cambiarPassword
-} = require('../controllers/authController');
-const { verificarAuth } = require('../middleware/auth');
+} from '../controllers/authController.js';
+import { verificarAuth } from '../middleware/auth.js';
+
+const router = express.Router();
 
 // Rutas públicas
 router.post('/registro', registrarUsuario);
@@ -20,4 +21,4 @@ router.get('/perfil', verificarAuth, obtenerPerfil);
 router.put('/perfil', verificarAuth, actualizarPerfil);
 router.put('/cambiar-password', verificarAuth, cambiarPassword);
 
-module.exports = router;
+export default router;

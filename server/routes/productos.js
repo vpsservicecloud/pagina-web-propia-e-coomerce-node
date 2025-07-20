@@ -1,13 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   obtenerProductos,
   obtenerProductoPorId,
   obtenerProductosDestacados,
   obtenerProductosNuevos,
   obtenerProductosRelacionados,
   buscarProductos
-} = require('../controllers/productosController');
+} from '../controllers/productosController.js';
+
+const router = express.Router();
 
 // Rutas públicas
 router.get('/', obtenerProductos);
@@ -17,4 +18,4 @@ router.get('/buscar', buscarProductos);
 router.get('/:id', obtenerProductoPorId);
 router.get('/:id/relacionados', obtenerProductosRelacionados);
 
-module.exports = router;
+export default router;

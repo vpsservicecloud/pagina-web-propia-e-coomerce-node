@@ -1,5 +1,5 @@
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+import mysql from 'mysql2/promise';
+import 'dotenv/config';
 
 // Configuración de la conexión a MySQL
 const dbConfig = {
@@ -324,7 +324,7 @@ async function insertarDatosEjemplo() {
   }
 }
 
-module.exports = {
+export {
   pool,
   inicializarBaseDatos,
   insertarDatosEjemplo

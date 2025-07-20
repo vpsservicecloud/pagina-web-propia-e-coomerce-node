@@ -1,5 +1,5 @@
-const { pool } = require('../config/database');
-const { cacheEcommerce } = require('../config/redis');
+import { pool } from '../config/database.js';
+import { cacheEcommerce } from '../config/redis.js';
 
 // Obtener carrito del usuario
 const obtenerCarrito = async (req, res) => {
@@ -387,7 +387,7 @@ const limpiarCarrito = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   obtenerCarrito,
   agregarProducto,
   actualizarCantidad,
