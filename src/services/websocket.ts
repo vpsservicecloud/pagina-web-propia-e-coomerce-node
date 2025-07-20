@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { API_BASE_URL } from './api';
 
 class WebSocketService {
   private socket: Socket | null = null;
@@ -10,7 +11,14 @@ class WebSocketService {
       return;
     }
 
-    const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:3001';
+    // Derivar la URL del WebSocket desde la URL base de la API
+    let WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
+    
+    if (!WEBSOCKET_URL) {
+      // Extraer la base URL sin el path /api
+      const baseUrl = API_BASE_URL.replace('/api', '');
+      WEBSOCKET_URL = baseUrl;
+    }
     
     this.socket = io(WEBSOCKET_URL, {
       transports: ['websocket', 'polling'],
