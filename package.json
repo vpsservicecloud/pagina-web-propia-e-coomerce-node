@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start-backend": "node server/server.js",
+    "dev-full": "npm run start-backend & npm run dev"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
