@@ -24,7 +24,9 @@ const server = http.createServer(app);
 // Configurar Socket.IO con CORS
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: process.env.NODE_ENV === 'production' 
+      ? (process.env.FRONTEND_URL || "http://localhost:5173")
+      : true, // Permitir cualquier origen en desarrollo
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -46,7 +48,9 @@ app.use(helmet({
 
 // Configurar CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  origin: process.env.NODE_ENV === 'production' 
+    ? (process.env.FRONTEND_URL || "http://localhost:5173")
+    : true, // Permitir cualquier origen en desarrollo
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id']
