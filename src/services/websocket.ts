@@ -11,16 +11,9 @@ class WebSocketService {
       return;
     }
 
-    // Derivar la URL del WebSocket desde la URL base de la API
-    let WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
-    
-    if (!WEBSOCKET_URL) {
-      // Extraer la base URL sin el path /api
-      const baseUrl = API_BASE_URL.replace('/api', '');
-      WEBSOCKET_URL = baseUrl;
-    }
-    
-    this.socket = io(WEBSOCKET_URL, {
+    // Conectar al origen actual usando el proxy de Vite
+    this.socket = io({
+      path: '/socket.io',
       transports: ['websocket', 'polling'],
       autoConnect: true,
     });

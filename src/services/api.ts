@@ -1,5 +1,5 @@
 // Configuración de la API
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+export const API_BASE_URL = '/api';
 
 // Función para obtener el token de autenticación
 const obtenerToken = (): string | null => {
