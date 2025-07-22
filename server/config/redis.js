@@ -1,18 +1,17 @@
-import redis from 'redis';
+import Redis from 'ioredis';
 import 'dotenv/config';
 
 // Configuración de Redis
 const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
+  port: parseInt(process.env.REDIS_PORT) || 6379,
   password: process.env.REDIS_PASSWORD || undefined,
-  retryDelayOnFailover: 100,
-  enableReadyCheck: false,
-  maxRetriesPerRequest: null,
+  ...(process.env.REDIS_TLS === 'true' && { tls: {} }),
+  retryDelayOnFailover: 100
 };
 
 // Crear cliente de Redis
-const cliente = redis.createClient(redisConfig);
+const cliente = new Redis(redisConfig);
 
 // Manejo de eventos
 cliente.on('connect', () => {
@@ -27,14 +26,10 @@ cliente.on('ready', () => {
   console.log('✅ Redis listo para usar');
 });
 
-// Conectar a Redis
-async function conectarRedis() {
-  try {
-    await cliente.connect();
-  } catch (error) {
-    console.error('❌ Error al conectar con Redis:', error);
-  }
-}
+// Función de conexión (ioredis se conecta automáticamente)
+const conectarRedis = () => {
+  return Promise.resolve();
+};
 
 // Funciones de utilidad para cache
 const cache = {
@@ -52,7 +47,7 @@ const cache = {
   // Establecer valor en cache
   async establecer(clave, valor, expiracion = 3600) {
     try {
-      await cliente.setEx(clave, expiracion, JSON.stringify(valor));
+      await cliente.setex(clave, expiracion, JSON.stringify(valor));
       return true;
     } catch (error) {
       console.error('Error al establecer en cache:', error);
@@ -88,7 +83,7 @@ const cache = {
   // Incrementar contador
   async incrementar(clave, cantidad = 1) {
     try {
-      return await cliente.incrBy(clave, cantidad);
+      return await cliente.incrby(clave, cantidad);
     } catch (error) {
       console.error('Error al incrementar contador:', error);
       return 0;
@@ -98,7 +93,7 @@ const cache = {
   // Establecer con expiración
   async establecerConExpiracion(clave, valor, segundos) {
     try {
-      await cliente.setEx(clave, segundos, JSON.stringify(valor));
+      await cliente.setex(clave, segundos, JSON.stringify(valor));
       return true;
     } catch (error) {
       console.error('Error al establecer con expiración:', error);
