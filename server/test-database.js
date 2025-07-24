@@ -62,21 +62,32 @@ async function verificarRedis() {
   console.log('🔍 Verificando conexión a Redis...');
   
   try {
-    await conectarRedis();
+    // Configuración alternativa si falla la conexión inicial
+    if (!cache || !cache.status || cache.status !== 'ready') {
+      console.log('⚠️ Intentando reconectar a Redis...');
+      await conectarRedis();
+    }
     
     // Probar operaciones básicas
-    await cache.establecer('test:conexion', { mensaje: 'Hola desde Redis', timestamp: new Date() }, 60);
-    const resultado = await cache.obtener('test:conexion');
+    await cache.set('test:conexion', JSON.stringify({ 
+      mensaje: 'Hola desde Redis', 
+      timestamp: new Date() 
+    }));
     
-    console.log('✅ Conexión a Redis exitosa:', resultado);
+    // Configurar expiración por separado
+    await cache.expire('test:conexion', 60);
+    
+    const resultado = await cache.get('test:conexion');
+    console.log('✅ Conexión a Redis exitosa:', JSON.parse(resultado));
     
     // Probar cache de productos
-    await cache.establecer('productos:test', [
+    await cache.set('productos:test', JSON.stringify([
       { id: 1, nombre: 'Producto Test', precio: 99.99 }
-    ], 300);
+    ]));
+    await cache.expire('productos:test', 300);
     
-    const productosCache = await cache.obtener('productos:test');
-    console.log('🛍️ Cache de productos funcionando:', productosCache);
+    const productosCache = await cache.get('productos:test');
+    console.log('🛍️ Cache de productos funcionando:', JSON.parse(productosCache));
     
     console.log('✅ Verificación de Redis completada exitosamente');
     
@@ -105,7 +116,8 @@ async function main() {
     console.error('\n💥 Error durante la verificación:', error.message);
     process.exit(1);
   } finally {
-    process.exit(0);
+    // No forzar la salida inmediata para permitir que las conexiones se cierren adecuadamente
+    setTimeout(() => process.exit(0), 1000);
   }
 }
 
