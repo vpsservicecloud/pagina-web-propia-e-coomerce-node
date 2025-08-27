@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Usuario } from '../types';
-import { authAPI } from '../services/api';
-import webSocketService from '../services/websocket';
+import { authService } from '../services/supabase';
+import { supabase } from '../lib/supabase';
 
 interface ContextoAutenticacion {
   usuario: Usuario | null;
@@ -22,43 +22,54 @@ export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
 
   // Verificar si hay token al cargar
   React.useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      verificarToken();
-    }
+    verificarSesion();
+    
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          await cargarPerfil();
+        } else if (event === 'SIGNED_OUT') {
+          setUsuario(null);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const verificarToken = async () => {
+  const verificarSesion = async () => {
     try {
       setCargando(true);
-      const respuesta = await authAPI.obtenerPerfil();
-      if (respuesta.exito) {
-        setUsuario(respuesta.datos);
-        
-        // Conectar WebSocket y autenticar
-        webSocketService.conectar();
-        webSocketService.autenticar(localStorage.getItem('token')!);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await cargarPerfil();
       }
     } catch (error) {
-      console.error('Error al verificar token:', error);
-      localStorage.removeItem('token');
+      console.error('Error al verificar sesión:', error);
     } finally {
       setCargando(false);
+    }
+  };
+
+  const cargarPerfil = async () => {
+    try {
+      const respuesta = await authService.obtenerPerfil();
+      if (respuesta.exito) {
+        setUsuario(respuesta.datos);
+      }
+    } catch (error) {
+      console.error('Error al cargar perfil:', error);
     }
   };
   
   const iniciarSesion = async (email: string, password: string): Promise<boolean> => {
     try {
       setCargando(true);
-      const respuesta = await authAPI.iniciarSesion(email, password);
+      const respuesta = await authService.iniciarSesion(email, password);
       
       if (respuesta.exito) {
-        setUsuario(respuesta.datos.usuario);
-        
-        // Conectar WebSocket y autenticar
-        webSocketService.conectar();
-        webSocketService.autenticar(respuesta.datos.token);
-        
+        await cargarPerfil();
         return true;
       }
       return false;
@@ -73,15 +84,10 @@ export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
   const registrarse = async (datos: any): Promise<boolean> => {
     try {
       setCargando(true);
-      const respuesta = await authAPI.registrarse(datos);
+      const respuesta = await authService.registrarse(datos);
       
       if (respuesta.exito) {
-        setUsuario(respuesta.datos.usuario);
-        
-        // Conectar WebSocket y autenticar
-        webSocketService.conectar();
-        webSocketService.autenticar(respuesta.datos.token);
-        
+        await cargarPerfil();
         return true;
       }
       return false;
@@ -95,19 +101,18 @@ export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
   
   const cerrarSesion = async () => {
     try {
-      await authAPI.cerrarSesion();
+      await authService.cerrarSesion();
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     } finally {
       setUsuario(null);
-      webSocketService.desconectar();
     }
   };
 
   const actualizarPerfil = async (datos: any): Promise<boolean> => {
     try {
       setCargando(true);
-      const respuesta = await authAPI.actualizarPerfil(datos);
+      const respuesta = await authService.actualizarPerfil(datos);
       
       if (respuesta.exito) {
         setUsuario(respuesta.datos);

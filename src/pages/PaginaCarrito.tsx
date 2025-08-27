@@ -115,7 +115,7 @@ const PaginaCarrito: React.FC = () => {
                       <div className="col-md-1">
                         <button 
                           className="btn btn-outline-danger btn-sm"
-                          onClick={() => eliminarProducto(item.producto.id)}
+                          onClick={() => eliminarProducto(item.id)}
                         >
                           <Trash2 size={16} />
                         </button>

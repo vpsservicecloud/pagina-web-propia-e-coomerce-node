@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Filter, Grid, List } from 'lucide-react';
 import TarjetaProducto from '../components/TarjetaProducto';
-import { productosAPI } from '../services/api';
+import { productosService } from '../services/supabase';
 import { Producto } from '../types';
 
 const PaginaTienda: React.FC = () => {
@@ -38,7 +38,7 @@ const PaginaTienda: React.FC = () => {
           break;
       }
 
-      const respuesta = await productosAPI.obtenerProductos(filtros);
+      const respuesta = await productosService.obtenerProductos(filtros);
       if (respuesta.exito) {
         setProductos(respuesta.datos.productos || []);
       } else {

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Producto, ItemCarrito } from '../types';
-import { carritoAPI } from '../services/api';
-import webSocketService from '../services/websocket';
+import { carritoService } from '../services/supabase';
 
 interface EstadoCarrito {
   items: ItemCarrito[];
@@ -57,17 +56,12 @@ export function ProveedorCarrito({ children }: { children: ReactNode }) {
   // Cargar carrito al inicializar
   React.useEffect(() => {
     cargarCarrito();
-    
-    // Configurar WebSocket para actualizaciones en tiempo real
-    webSocketService.escucharActualizacionesCarrito(() => {
-      cargarCarrito();
-    });
   }, []);
 
   const cargarCarrito = async () => {
     try {
       setCargando(true);
-      const respuesta = await carritoAPI.obtenerCarrito();
+      const respuesta = await carritoService.obtenerCarrito();
       if (respuesta.exito) {
         dispatch({ type: 'ESTABLECER_CARRITO', payload: respuesta.datos });
       }
@@ -81,15 +75,9 @@ export function ProveedorCarrito({ children }: { children: ReactNode }) {
   const agregarProducto = async (producto: Producto) => {
     try {
       setCargando(true);
-      const respuesta = await carritoAPI.agregarProducto(parseInt(producto.id), 1);
+      const respuesta = await carritoService.agregarProducto(producto.id, 1);
       if (respuesta.exito) {
         await cargarCarrito();
-        
-        // Notificar actualización por WebSocket
-        webSocketService.notificarActualizacionCarrito({
-          accion: 'agregar',
-          producto_id: producto.id
-        });
       }
     } catch (error) {
       console.error('Error al agregar producto:', error);
@@ -99,17 +87,12 @@ export function ProveedorCarrito({ children }: { children: ReactNode }) {
     }
   };
   
-  const eliminarProducto = async (itemId: number) => {
+  const eliminarProducto = async (itemId: string) => {
     try {
       setCargando(true);
-      const respuesta = await carritoAPI.eliminarProducto(itemId);
+      const respuesta = await carritoService.eliminarProducto(itemId);
       if (respuesta.exito) {
         await cargarCarrito();
-        
-        webSocketService.notificarActualizacionCarrito({
-          accion: 'eliminar',
-          item_id: itemId
-        });
       }
     } catch (error) {
       console.error('Error al eliminar producto:', error);
@@ -119,18 +102,12 @@ export function ProveedorCarrito({ children }: { children: ReactNode }) {
     }
   };
   
-  const actualizarCantidad = async (itemId: number, cantidad: number) => {
+  const actualizarCantidad = async (itemId: string, cantidad: number) => {
     try {
       setCargando(true);
-      const respuesta = await carritoAPI.actualizarCantidad(itemId, cantidad);
+      const respuesta = await carritoService.actualizarCantidad(itemId, cantidad);
       if (respuesta.exito) {
         await cargarCarrito();
-        
-        webSocketService.notificarActualizacionCarrito({
-          accion: 'actualizar',
-          item_id: itemId,
-          cantidad
-        });
       }
     } catch (error) {
       console.error('Error al actualizar cantidad:', error);
@@ -143,13 +120,9 @@ export function ProveedorCarrito({ children }: { children: ReactNode }) {
   const limpiarCarrito = async () => {
     try {
       setCargando(true);
-      const respuesta = await carritoAPI.limpiarCarrito();
+      const respuesta = await carritoService.limpiarCarrito();
       if (respuesta.exito) {
         dispatch({ type: 'LIMPIAR_CARRITO' });
-        
-        webSocketService.notificarActualizacionCarrito({
-          accion: 'limpiar'
-        });
       }
     } catch (error) {
       console.error('Error al limpiar carrito:', error);

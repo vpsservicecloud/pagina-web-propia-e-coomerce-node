@@ -1,5 +1,5 @@
 import { Categoria } from '../types';
-import { productosAPI } from '../services/api';
+import { productosService } from '../services/supabase';
 
 export const categorias: Categoria[] = [
   { id: '1', nombre: 'Ropa', url: '/categoria/ropa' },
@@ -13,7 +13,7 @@ export const categorias: Categoria[] = [
 // Funciones para obtener productos desde la API
 export async function obtenerProductoPorId(id: string) {
   try {
-    const respuesta = await productosAPI.obtenerProductoPorId(id);
+    const respuesta = await productosService.obtenerProductoPorId(id);
     return respuesta.exito ? respuesta.datos : null;
   } catch (error) {
     console.error('Error al obtener producto:', error);
@@ -23,7 +23,7 @@ export async function obtenerProductoPorId(id: string) {
 
 export async function obtenerProductosPorCategoria(categoria: string) {
   try {
-    const respuesta = await productosAPI.obtenerProductos({ categoria });
+    const respuesta = await productosService.obtenerProductos({ categoria });
     return respuesta.exito ? respuesta.datos.productos : [];
   } catch (error) {
     console.error('Error al obtener productos por categoría:', error);
@@ -33,7 +33,7 @@ export async function obtenerProductosPorCategoria(categoria: string) {
 
 export async function buscarProductos(termino: string) {
   try {
-    const respuesta = await productosAPI.buscarProductos(termino);
+    const respuesta = await productosService.buscarProductos(termino);
     return respuesta.exito ? respuesta.datos.productos : [];
   } catch (error) {
     console.error('Error al buscar productos:', error);
@@ -43,7 +43,7 @@ export async function buscarProductos(termino: string) {
 
 export async function obtenerProductosDestacados(limite: number = 8) {
   try {
-    const respuesta = await productosAPI.obtenerProductosDestacados(limite);
+    const respuesta = await productosService.obtenerProductosDestacados(limite);
     return respuesta.exito ? respuesta.datos : [];
   } catch (error) {
     console.error('Error al obtener productos destacados:', error);
